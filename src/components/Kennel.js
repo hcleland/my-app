@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import EmployeeList from "./employee/EmployeeList"  // Import EmployeeList component
 import Joke from "./joke/joke";
 import AnimalList from './animals/AnimalList';
+import LocationList from "./locations/LocationList";
 
 
 export default class Kennel extends Component {
@@ -59,6 +60,8 @@ export default class Kennel extends Component {
                     punchline={this.state.punchline}
                     setNewJokeState={this.setNewJokeState} />
                 <hr></hr>
+                <LocationList locations={this.state.locations} />
+                <hr />
                 <AnimalList animals={this.state.animals} />
             </div>
         );
