@@ -1,59 +1,120 @@
-import { Route } from 'react-router-dom'
+import { Route, Redirect } from 'react-router-dom'
+import { withRouter } from 'react-router'
 import React, { Component } from "react"
 import AnimalList from './animals/AnimalList'
 import LocationList from './locations/LocationList'
 import EmployeeList from './employee/EmployeeList'
 import OwnerList from "./owners/OwnerList"
+import AnimalManager from "../modules/AnimalManager"
+import AnimalDetail from "./animals/AnimalDetail"
+import AnimalForm from "./animals/AnimalForm"
+import AnimalEditForm from "./animals/AnimalEditForm"
+import Login from "./authentication/Login"
+import Welcome from "./Welcome"
 
 
 class ApplicationViews extends Component {
-    employeesFromAPI = [
-        { id: 1, name: "Jessica Younker" },
-        { id: 2, name: "Jordan Nelson" },
-        { id: 3, name: "Zoe LeBlanc" },
-        { id: 4, name: "Blaise Roberts" }
-    ]
-
-    locationsFromAPI = [
-        { id: 1, name: "Nashville North", address: "500 Circle Way" },
-        { id: 2, name: "Nashville South", address: "10101 Binary Court" }
-    ]
-
-    animalsFromAPI = [
-        { id: 1, name: "Doodles" },
-        { id: 2, name: "Jack" },
-        { id: 3, name: "Angus" },
-        { id: 4, name: "Henley" },
-        { id: 5, name: "Derkins" },
-        { id: 6, name: "Checkers" }
-    ]
-
-    ownersFromAPI = [
-        { id: 1, name: "Shelley Arnold", phoneNumber: "615-555-1234" },
-        { id: 2, name: "Emily Loggins", phoneNumber: "931-555-1234" },
-        { id: 3, name: "Brenda Long", phoneNumber: "865-555-1234" },
-        { id: 4, name: "Bryan Nilson", phoneNumber: "423-555-1234" }
-    ]
 
     state = {
-        employees: this.employeesFromAPI,
-        locations: this.locationsFromAPI,
-        animals: this.animalsFromAPI,
-        owners: this.ownersFromAPI
+        locations: [],
+        animals: [],
+        employees: [],
+        owners: []
+
+    }
+
+    isAuthenticated = () => sessionStorage.getItem("credentials") !== null
+
+    deleteAnimal = (id) => {
+        const newState = {};
+        AnimalManager.deleteAnimal(id)
+            .then(AnimalManager.getAll("animals"))
+            .then(animals => {
+                console.log("animals", animals);
+                newState.animals = animals
+            })
+            .then(() => {
+                this.props.history.push("/animals")
+                this.setState(newState)
+            })
+    }
+
+    addAnimal = (animalObj) => {
+        AnimalManager.post(animalObj)
+            .then(() => AnimalManager.getAll("animals"))
+            .then(animals =>
+                this.setState({
+                    animals: animals
+                })
+            ).then(() => this.props.history.push("/animals"));
+    }
+
+    updateAnimal = (editedAnimalObject) => {
+        return AnimalManager.put(editedAnimalObject)
+            .then(() => AnimalManager.getAll("animals"))
+            .then(animals => {
+                this.setState({
+                    animals: animals
+                })
+            });
+    };
+
+    componentDidMount() {
+        console.log("APPVIEWS componentDidMount")
+        const newState = {};
+        AnimalManager.getAll("animals")
+            .then(animals => newState.animals = animals)
+            .then(() => AnimalManager.getAll("locations"))
+            .then(locations => newState.locations = locations)
+            .then(() => AnimalManager.getAll("employees"))
+            .then(employees => newState.employees = employees)
+            .then(() => this.setState(newState))
 
     }
 
     render() {
+        console.log("APPVIEWS render")
         return (
             <React.Fragment>
-                <Route exact path="/" render={(props) => {
-                    return <LocationList locations={this.state.locations} />
+                <Route exact path="/" component={Welcome} />
+                <Route path="/login" component={Login} />
+                <Route path="/locations" render={(props) => {
+                    return <LocationList locations={this.state.locations} {...props} />
                 }} />
-                <Route path="/animals" render={(props) => {
-                    return <AnimalList animals={this.state.animals} />
+                <Route exact path="/animals" render={(props) => {
+                    return <AnimalList animals={this.state.animals} {...props}
+                        deleteAnimal={this.deleteAnimal} />
                 }} />
-                <Route path="/employees" render={(props) => {
-                    return <EmployeeList employees={this.state.employees} />
+                <Route exact path="/animals/:animalId(\d+)" render={(props) => {
+                    // Find the animal with the id of the route parameter
+                    let animal = this.state.animals.find(animal =>
+                        animal.id === parseInt(props.match.params.animalId)
+                    )
+
+                    // If the animal wasn't found, create a default one
+                    if (!animal) {
+                        animal = { id: 404, name: "404", breed: "Dog not found" }
+                    }
+
+                    return <AnimalDetail animal={animal}
+                        deleteAnimal={this.deleteAnimal} />
+                }} />
+                <Route path="/animals/:animalId(\d+)/edit" render={props => {
+                    return <AnimalEditForm {...props} employees={this.state.employees} updateAnimal={this.updateAnimal} />
+                }}
+                />
+                <Route path="/animals/new" render={(props) => {
+                    return <AnimalForm {...props}
+                        addAnimal={this.addAnimal}
+                        employees={this.state.employees} />
+                }} />
+                <Route exact path="/employees" render={props => {
+                    if (this.isAuthenticated()) {
+                        return <EmployeeList deleteEmployee={this.deleteEmployee}
+                            employees={this.state.employees} />
+                    } else {
+                        return <Redirect to="/login" />
+                    }
                 }} />
                 <Route path="/owners" render={(props) => {
                     return <OwnerList owners={this.state.owners} />
@@ -63,4 +124,4 @@ class ApplicationViews extends Component {
     }
 }
 
-export default ApplicationViews
+export default withRouter(ApplicationViews)

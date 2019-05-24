@@ -1,22 +1,23 @@
 import React, { Component } from 'react'
+import { withRouter } from 'react-router'
 
 
-class LocationList extends Component {
+export default class LocationList extends Component {
+
     render() {
+        console.log("props", this.props);
         return (
             <section className="locations">
                 <h2>All Locations</h2>
                 {
-                    this.props.locations.map(location =>
+                    this.props.locations.map(location => (
                         <div key={location.id}>
-                            <h4>{location.name}</h4>
-                            <h6>{location.address}</h6>
+                            <h2>{location.name}</h2>
+                            <h4>{location.address}</h4>
                         </div>
                     )
-                }
+                    )}
             </section>
         )
     }
 }
-
-export default LocationList
