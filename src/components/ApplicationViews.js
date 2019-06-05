@@ -25,19 +25,32 @@ class ApplicationViews extends Component {
 
     isAuthenticated = () => sessionStorage.getItem("credentials") !== null
 
-    deleteAnimal = (id) => {
-        const newState = {};
-        AnimalManager.deleteAnimal(id)
-            .then(AnimalManager.getAll("animals"))
-            .then(animals => {
-                console.log("animals", animals);
-                newState.animals = animals
+    deleteAnimal = id => {
+        return fetch(`http://localhost:5002/animals/${id}`, {
+            method: "DELETE"
+        })
+            .then(e => e.json())
+            .then(() => fetch(`http://localhost:5002/animals`))
+            .then(e => e.json())
+            .then(animals => this.setState({
+                animals: animals
             })
-            .then(() => {
-                this.props.history.push("/animals")
-                this.setState(newState)
-            })
+            )
     }
+
+    // deleteAnimal = (id) => {
+    //     const newState = {};
+    //     AnimalManager.deleteAnimal(id)
+    //         .then(AnimalManager.getAll)
+    //         .then(animals => {
+    //             console.log("animals", animals);
+    //             this.props.history.push("/animals")
+    //             newState.animals = animals
+    //         })
+    //         .then(() => {
+    //             this.setState(newState)
+    //         })
+    // }
 
     addAnimal = (animalObj) => {
         AnimalManager.post(animalObj)
@@ -73,18 +86,29 @@ class ApplicationViews extends Component {
     }
 
     render() {
-        console.log("APPVIEWS render")
+        console.log("APPVIEWS render");
         return (
-            <React.Fragment>
-                <Route exact path="/" component={Welcome} />
+            <>
                 <Route path="/login" component={Login} />
-                <Route path="/locations" render={(props) => {
-                    return <LocationList locations={this.state.locations} {...props} />
+
+                <Route exact path="/employees" render={props => {
+                    if (this.isAuthenticated()) {
+                        return <EmployeeList deleteEmployee={this.deleteEmployee}
+                            employees={this.state.employees}
+                            animals={this.state.animals} />
+                    } else {
+                        return <Redirect to="/login" />
+                    }
+                }} />
+
+                <Route exact path="/" render={(props) => {
+                    return <LocationList locations={this.state.locations} />
                 }} />
                 <Route exact path="/animals" render={(props) => {
                     return <AnimalList animals={this.state.animals} {...props}
                         deleteAnimal={this.deleteAnimal} />
                 }} />
+
                 <Route exact path="/animals/:animalId(\d+)" render={(props) => {
                     // Find the animal with the id of the route parameter
                     let animal = this.state.animals.find(animal =>
@@ -99,28 +123,20 @@ class ApplicationViews extends Component {
                     return <AnimalDetail animal={animal}
                         deleteAnimal={this.deleteAnimal} />
                 }} />
+
                 <Route path="/animals/:animalId(\d+)/edit" render={props => {
                     return <AnimalEditForm {...props} employees={this.state.employees} updateAnimal={this.updateAnimal} />
                 }}
                 />
+
                 <Route path="/animals/new" render={(props) => {
                     return <AnimalForm {...props}
                         addAnimal={this.addAnimal}
                         employees={this.state.employees} />
                 }} />
-                <Route exact path="/employees" render={props => {
-                    if (this.isAuthenticated()) {
-                        return <EmployeeList deleteEmployee={this.deleteEmployee}
-                            employees={this.state.employees}
-                            animals={this.state.animals} />
-                    } else {
-                        return <Redirect to="/login" />
-                    }
-                }} />
-                <Route path="/owners" render={(props) => {
-                    return <OwnerList owners={this.state.owners} />
-                }} />
-            </React.Fragment>
+
+
+            </>
         )
     }
 }
